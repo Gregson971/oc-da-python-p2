@@ -1,4 +1,5 @@
-from utils import load_product_page_data, parse_category_page, parse_all_categories_pages
+from utils import load_product_page_data, parse_category_page, parse_all_categories_pages, download_image
+
 
 # URL to be scraped
 url = "http://books.toscrape.com/index.html"
@@ -25,6 +26,10 @@ for category_url in categories_urls:
     category_name, product_page_infos = parse_category_page(category_url)
 
     csv_file_name = category_name.replace(" ", "_").lower() + ".csv"
+
+    for product_page_info in product_page_infos:
+        download_image(
+            product_page_info[-1], "images/" + category_name.replace(" ", "_").lower(), product_page_info[1] + ".jpg")
 
     # Load category product page data
     if __name__ == '__main__':
