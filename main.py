@@ -20,7 +20,9 @@ product_page_headers = [
     "image_url"
 ]
 
+csv_file_name = product_page_infos[2].replace(" ", "_").lower() + ".csv"
+
 # Load product page data
 if __name__ == '__main__':
     load_product_page_data(
-        "product_page.csv", product_page_headers, product_page_infos)
+        csv_file_name, product_page_headers, product_page_infos)
