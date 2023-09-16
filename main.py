@@ -1,55 +1,10 @@
-import requests
-from bs4 import BeautifulSoup
-import csv
+from utils import parse_product_page_infos, load_product_page_data
 
 # URL to be scraped
 url = 'http://books.toscrape.com/catalogue/wall-and-piece_971/index.html'
 
-# Make a GET request to fetch the raw HTML content
-response = requests.get(url)
-html_content = response.content
-
-# Parse the html content
-soup = BeautifulSoup(html_content, "html.parser")
-# print(soup.prettify())  # print the parsed data of html
-
-# Get product page informations
-product_page_url = url
-
-universal_product_code = soup.find(string="UPC").next_element.text
-
-title = soup.find("h1").text
-
-price_including_tax = soup.find(string="Price (incl. tax)").next_element.text
-
-price_excluding_tax = soup.find(string="Price (excl. tax)").next_element.text
-
-number_available = soup.find(
-    string="Availability").next_element.next_element.text
-
-product_description = soup.find(
-    id="product_description").next_sibling.next_sibling.text
-
-category = soup.find("ul", {"class": "breadcrumb"}
-                     ).find_all("li")[-2].text.strip()
-
-review_rating = soup.find("p", {"class": "star-rating"})["class"][1]
-
-image_url = soup.find("div", class_="carousel-inner").find_next(
-    "img")["src"].replace("../../", "http://books.toscrape.com/")
-
-product_page_infos = [
-    product_page_url,
-    universal_product_code,
-    title,
-    price_including_tax,
-    price_excluding_tax,
-    number_available,
-    product_description,
-    category,
-    review_rating,
-    image_url
-]
+# Parse product page informations
+product_page_infos = parse_product_page_infos(url)
 
 # Define product page headers
 product_page_headers = [
@@ -65,16 +20,7 @@ product_page_headers = [
     "image_url"
 ]
 
-# Load product page infos into a CSV file
-
-
-def load_product_page_data(file_name, header, product_page_infos):
-    with open(file_name, 'w') as fichier_csv:
-        writer = csv.writer(fichier_csv, delimiter=',')
-        writer.writerow(header)
-        writer.writerow(product_page_infos)
-    print("Product page data loaded into a CSV file")
-
-
-load_product_page_data(
-    "product_page.csv", product_page_headers, product_page_infos)
+# Load product page data
+if __name__ == '__main__':
+    load_product_page_data(
+        "product_page.csv", product_page_headers, product_page_infos)
