@@ -1,7 +1,10 @@
-from utils import load_product_page_data, parse_category_page
+from utils import load_product_page_data, parse_category_page, parse_all_categories_pages
 
 # URL to be scraped
-category_page_url = "http://books.toscrape.com/catalogue/category/books/default_15/index.html"
+url = "http://books.toscrape.com/index.html"
+
+# Parse all categories pages
+categories_urls = parse_all_categories_pages(url)
 
 # Define product page headers
 product_page_headers = (
@@ -17,11 +20,13 @@ product_page_headers = (
     "image_url"
 )
 
-category_name, product_page_infos = parse_category_page(category_page_url)
+# Load categories product page data
+for category_url in categories_urls:
+    category_name, product_page_infos = parse_category_page(category_url)
 
-csv_file_name = category_name.replace(" ", "_").lower() + ".csv"
+    csv_file_name = category_name.replace(" ", "_").lower() + ".csv"
 
-# Load category product page data
-if __name__ == '__main__':
-    load_product_page_data(
-        csv_file_name, product_page_headers, product_page_infos)
+    # Load category product page data
+    if __name__ == '__main__':
+        load_product_page_data(
+            csv_file_name, product_page_headers, product_page_infos)

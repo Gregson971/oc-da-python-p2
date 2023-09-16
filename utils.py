@@ -102,7 +102,27 @@ def parse_category_page(category_page_url):
     return category_name, product_page_infos
 
 
+# Parse all categories pages
+
+
+def parse_all_categories_pages(url):
+    response = requests.get(url)
+    html_content = response.content
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    # Get all categories URLs
+    categories_urls = []
+    categories = soup.find(
+        "ul", {"class": "nav nav-list"}).find("ul").find_all("a")
+    for category in categories:
+        categories_urls.append(category["href"].replace(
+            "catalogue/category/books/", "http://books.toscrape.com/catalogue/category/books/"))
+
+    return categories_urls
+
+
 # Load product page infos into a CSV file
+
 
 def load_product_page_data(file_name, row_headers, product_page_infos):
     with open(file_name, 'w') as fichier_csv:
