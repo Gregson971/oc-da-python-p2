@@ -100,6 +100,8 @@ def parse_category_page(category_page_url):
     for book_url in books_urls:
         product_page_infos.append(parse_product_page_infos(book_url))
 
+    print("Successful parsing of category: " + category_name + "")
+
     return category_name, product_page_infos
 
 
@@ -125,11 +127,12 @@ def parse_all_categories_pages(url):
 # Download images
 
 
-def download_image(url, path_name, file_name):
+def download_image(url, category_name, file_name):
     # Get the directory of the currently running script
     script_directory = os.path.dirname(os.path.abspath(__file__))
 
     # Specify the destination directory relative to the script directory
+    path_name = "data/" + category_name.replace(" ", "_").lower() + "/images/"
     path_directory = os.path.join(script_directory, path_name)
     if not os.path.exists(path_directory):
         os.makedirs(path_directory)
@@ -140,26 +143,31 @@ def download_image(url, path_name, file_name):
     response = requests.get(url)
     file_image.write(response.content)
     file_image.close()
-    print("Successful download of image: " + file_name + "")
+
+    print("Downloading image: " + file_name + "")
 
 
 # Load product page infos into a CSV file
 
 
-def load_product_page_data(file_name, row_headers, product_page_infos):
+def load_product_page_data(category_name, row_headers, product_page_infos):
+    csv_file_name = category_name.replace(" ", "_").lower() + ".csv"
+
     # Get the directory of the currently running script
     script_directory = os.path.dirname(os.path.abspath(__file__))
 
     # Specify the destination directory relative to the script directory
-    path_directory = os.path.join(script_directory, "csv_files")
+    path_name = "data/" + category_name.replace(" ", "_").lower()
+    path_directory = os.path.join(script_directory, path_name)
     if not os.path.exists(path_directory):
         os.makedirs(path_directory)
 
-    full_file_name = os.path.join(path_directory, file_name)
+    full_file_name = os.path.join(path_directory, csv_file_name)
 
     with open(full_file_name, 'w') as fichier_csv:
         writer = csv.writer(fichier_csv, delimiter=',')
         writer.writerow(row_headers)
         for product_page_info in product_page_infos:
             writer.writerow(product_page_info)
-    print("Product page data loaded into: " + file_name + "")
+
+    print("Product page data loaded into: " + csv_file_name + "")
