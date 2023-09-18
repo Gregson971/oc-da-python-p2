@@ -1,11 +1,13 @@
-from utils import load_product_page_data, parse_category_page, parse_all_categories_pages, download_image
+from utils import Book_Scraper
 
 
 # URL to be scraped
 url = "http://books.toscrape.com/index.html"
 
+scraper = Book_Scraper()
+
 # Get all categories urls
-categories_urls = parse_all_categories_pages(url)
+categories_urls = scraper.parse_all_categories_pages(url)
 
 # Define product page headers
 product_page_headers = (
@@ -24,10 +26,11 @@ product_page_headers = (
 if __name__ == '__main__':
     for category_url in categories_urls:
         # Parse categories product page data
-        category_name, product_page_infos = parse_category_page(category_url)
+        category_name, product_page_infos = scraper.parse_category_page(
+            category_url)
 
         # Load category product page data
-        load_product_page_data(
+        scraper.load_product_page_data(
             category_name, product_page_headers, product_page_infos)
 
         # Download images
@@ -35,5 +38,5 @@ if __name__ == '__main__':
             image_url = product_page_info[-1]
             universal_product_code = product_page_info[1]
             file_name = universal_product_code + ".jpg"
-            download_image(
+            scraper.download_image(
                 image_url, category_name, file_name)

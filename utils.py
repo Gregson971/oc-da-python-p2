@@ -3,171 +3,148 @@ from bs4 import BeautifulSoup
 import csv
 import os
 
-# Parse product page informations
 
+class Book_Scraper:
+    """Class to scrape books.toscrape.com"""
 
-def parse_product_page_infos(url):
-    # Make a GET request to fetch the raw HTML content
-    response = requests.get(url)
-    html_content = response.content
+    def __init__(self):
+        pass
 
-    # Parse the html content
-    soup = BeautifulSoup(html_content, "html.parser")
-
-    # Get product page informations
-    product_page_url = url
-
-    universal_product_code = soup.find(string="UPC").next_element.text
-
-    title = soup.find("h1").text
-
-    price_including_tax = soup.find(
-        string="Price (incl. tax)").next_element.text
-
-    price_excluding_tax = soup.find(
-        string="Price (excl. tax)").next_element.text
-
-    number_available = soup.find(
-        string="Availability").next_element.next_element.text
-
-    product_description = soup.find(
-        id="product_description")
-
-    if product_description:
-        product_description = product_description.next_sibling.next_sibling.text
-    else:
-        product_description = "No description available"
-
-    category = soup.find("ul", {"class": "breadcrumb"}
-                         ).find_all("li")[-2].text.strip()
-
-    review_rating = soup.find("p", {"class": "star-rating"})["class"][1]
-
-    image_url = soup.find("div", class_="carousel-inner").find_next(
-        "img")["src"].replace("../../", "http://books.toscrape.com/")
-
-    product_page_infos = [
-        product_page_url,
-        universal_product_code,
-        title,
-        price_including_tax,
-        price_excluding_tax,
-        number_available,
-        product_description,
-        category,
-        review_rating,
-        image_url
-    ]
-
-    return product_page_infos
-
-
-# Parse category page
-
-def parse_category_page(category_page_url):
-    books_urls = []
-    product_page_infos = []
-
-    response = requests.get(category_page_url)
-    html_content = response.content
-    soup = BeautifulSoup(html_content, "html.parser")
-
-    category_name = soup.find("h1").text.strip()
-
-    books = soup.find_all("h3")
-    for book in books:
-        books_urls.append(book.find_next("a")["href"].replace(
-            "../../../", "http://books.toscrape.com/catalogue/"))
-
-    # Check if there is a next page
-    next_page = soup.find("li", {"class": "next"})
-
-    if next_page:
-        total_pages = soup.find(
-            "li", {"class": "current"}).text.strip().split(" ")[3]
-        for i in range(2, int(total_pages) + 1):
-            pagination = "page-" + str(i) + ".html"
-            response = requests.get(
-                category_page_url.replace("index.html", pagination))
-            html_content = response.content
-            soup = BeautifulSoup(html_content, "html.parser")
-            books = soup.find_all("h3")
-            for book in books:
-                books_urls.append(book.find_next("a")["href"].replace(
-                    "../../../", "http://books.toscrape.com/catalogue/"))
+    def get_soup(self, url: str):
+        response = requests.get(url)
+        return BeautifulSoup(response.content, "html.parser")
 
     # Parse product page informations
-    for book_url in books_urls:
-        product_page_infos.append(parse_product_page_infos(book_url))
 
-    print("Successful parsing of category: " + category_name + "")
+    def parse_product_page_infos(self, url: str):
+        # Parse the html content
+        soup = self.get_soup(url)
 
-    return category_name, product_page_infos
+        # Get product page informations
+        product_page_url = url
+        universal_product_code = soup.find(string="UPC").next_element.text
+        title = soup.find("h1").text
+        price_including_tax = soup.find(
+            string="Price (incl. tax)").next_element.text
+        price_excluding_tax = soup.find(
+            string="Price (excl. tax)").next_element.text
+        number_available = soup.find(
+            string="Availability").next_element.next_element.text
+        product_description = soup.find(
+            id="product_description")
 
+        if product_description:
+            product_description = product_description.next_sibling.next_sibling.text
+        else:
+            product_description = "No description available"
 
-# Parse all categories pages
+        category = soup.find("ul", {"class": "breadcrumb"}
+                             ).find_all("li")[-2].text.strip()
+        review_rating = soup.find("p", {"class": "star-rating"})["class"][1]
+        image_url = soup.find("div", class_="carousel-inner").find_next(
+            "img")["src"].replace("../../", "http://books.toscrape.com/")
 
+        product_page_infos = [
+            product_page_url,
+            universal_product_code,
+            title,
+            price_including_tax,
+            price_excluding_tax,
+            number_available,
+            product_description,
+            category,
+            review_rating,
+            image_url
+        ]
 
-def parse_all_categories_pages(url):
-    response = requests.get(url)
-    html_content = response.content
-    soup = BeautifulSoup(html_content, "html.parser")
+        return product_page_infos
 
-    # Get all categories URLs
-    categories_urls = []
-    categories = soup.find(
-        "ul", {"class": "nav nav-list"}).find("ul").find_all("a")
-    for category in categories:
-        categories_urls.append(category["href"].replace(
-            "catalogue/category/books/", "http://books.toscrape.com/catalogue/category/books/"))
+    # Parse category page
 
-    return categories_urls
+    def parse_category_page(self, category_page_url: str):
+        books_urls = []
+        product_page_infos = []
 
+        soup = self.get_soup(category_page_url)
 
-# Download images
+        category_name = soup.find("h1").text.strip()
 
+        books = soup.find_all("h3")
+        for book in books:
+            books_urls.append(book.find_next("a")["href"].replace(
+                "../../../", "http://books.toscrape.com/catalogue/"))
 
-def download_image(url, category_name, file_name):
-    # Get the directory of the currently running script
-    script_directory = os.path.dirname(os.path.abspath(__file__))
+        # Check if there is a next page
+        next_page = soup.find("li", {"class": "next"})
 
-    # Specify the destination directory relative to the script directory
-    path_name = "data/" + category_name.replace(" ", "_").lower() + "/images/"
-    path_directory = os.path.join(script_directory, path_name)
-    if not os.path.exists(path_directory):
-        os.makedirs(path_directory)
+        if next_page:
+            total_pages = soup.find(
+                "li", {"class": "current"}).text.strip().split(" ")[3]
+            for i in range(2, int(total_pages) + 1):
+                pagination = "page-" + str(i) + ".html"
+                soup = self.get_soup(
+                    category_page_url.replace("index.html", pagination))
+                books = soup.find_all("h3")
+                for book in books:
+                    books_urls.append(book.find_next("a")["href"].replace(
+                        "../../../", "http://books.toscrape.com/catalogue/"))
 
-    full_file_name = os.path.join(path_directory, file_name)
+        # Parse product page informations
+        for book_url in books_urls:
+            product_page_infos.append(
+                self.parse_product_page_infos(book_url))
 
-    file_image = open(full_file_name, 'wb')
-    response = requests.get(url)
-    file_image.write(response.content)
-    file_image.close()
+        print("Successful parsing of category: " + category_name + "")
 
-    print("Downloading image: " + file_name + "")
+        return category_name, product_page_infos
 
+    # Parse all categories pages
 
-# Load product page infos into a CSV file
+    def parse_all_categories_pages(self, url: str):
+        soup = self.get_soup(url)
 
+        # Get all categories URLs
+        categories_urls = []
+        categories = soup.find(
+            "ul", {"class": "nav nav-list"}).find("ul").find_all("a")
+        for category in categories:
+            categories_urls.append(category["href"].replace(
+                "catalogue/category/books/", "http://books.toscrape.com/catalogue/category/books/"))
 
-def load_product_page_data(category_name, row_headers, product_page_infos):
-    csv_file_name = category_name.replace(" ", "_").lower() + ".csv"
+        return categories_urls
 
-    # Get the directory of the currently running script
-    script_directory = os.path.dirname(os.path.abspath(__file__))
+    # Load product page infos into a CSV file
 
-    # Specify the destination directory relative to the script directory
-    path_name = "data/" + category_name.replace(" ", "_").lower()
-    path_directory = os.path.join(script_directory, path_name)
-    if not os.path.exists(path_directory):
-        os.makedirs(path_directory)
+    def load_product_page_data(self, category_name: str, row_headers: tuple, product_page_infos: list):
+        format_category_name = category_name.replace(" ", "_").lower()
+        path_directory = os.path.join(
+            "data", format_category_name)
+        os.makedirs(path_directory, exist_ok=True)
+        csv_file_name = os.path.join(
+            path_directory, format_category_name + ".csv")
 
-    full_file_name = os.path.join(path_directory, csv_file_name)
+        with open(csv_file_name, 'w', newline='') as csv_file:
+            writer = csv.writer(csv_file, delimiter=',')
+            writer.writerow(row_headers)
+            writer.writerows(product_page_infos)
 
-    with open(full_file_name, 'w') as fichier_csv:
-        writer = csv.writer(fichier_csv, delimiter=',')
-        writer.writerow(row_headers)
-        for product_page_info in product_page_infos:
-            writer.writerow(product_page_info)
+        print("Product page data loaded into: " + csv_file_name + "")
 
-    print("Product page data loaded into: " + csv_file_name + "")
+    # Download images
+
+    def download_image(self, url: str, category_name: str, file_name: str):
+        # Get the directory of the currently running script
+        script_directory = os.path.dirname(os.path.abspath(__file__))
+
+        # Specify the destination directory relative to the script directory
+        path_name = os.path.join(
+            "data", category_name.replace(" ", "_").lower(), "images")
+        path_directory = os.path.join(script_directory, path_name)
+        os.makedirs(path_directory, exist_ok=True)
+        full_file_name = os.path.join(path_directory, file_name)
+
+        response = requests.get(url)
+        with open(full_file_name, 'wb') as file_image:
+            file_image.write(response.content)
+
+        print("Downloading image: " + file_name + "")
