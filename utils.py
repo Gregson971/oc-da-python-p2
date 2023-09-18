@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
-import csv
 import os
+from pandas import DataFrame as df
 
 
 class Book_Scraper:
@@ -121,24 +121,23 @@ class Book_Scraper:
             "data", format_category_name)
         os.makedirs(path_directory, exist_ok=True)
         csv_file_name = os.path.join(
-            path_directory, format_category_name + ".csv")
+            path_directory, f'{format_category_name}.csv')
 
-        with open(csv_file_name, 'w', newline='') as csv_file:
-            writer = csv.writer(csv_file, delimiter=',')
-            writer.writerow(row_headers)
-            writer.writerows(product_page_infos)
+        csv_data = df(product_page_infos, columns=row_headers)
+        csv_data.to_csv(csv_file_name, index=False, header=True)
 
-        print("Product page data loaded into: " + csv_file_name + "")
+        print(f'Product page data loaded into: {csv_file_name}')
 
     # Download images
 
     def download_image(self, url: str, category_name: str, file_name: str):
+        format_category_name = category_name.replace(" ", "_").lower()
+
         # Get the directory of the currently running script
         script_directory = os.path.dirname(os.path.abspath(__file__))
 
         # Specify the destination directory relative to the script directory
-        path_name = os.path.join(
-            "data", category_name.replace(" ", "_").lower(), "images")
+        path_name = os.path.join("data", format_category_name, "images")
         path_directory = os.path.join(script_directory, path_name)
         os.makedirs(path_directory, exist_ok=True)
         full_file_name = os.path.join(path_directory, file_name)
@@ -147,4 +146,4 @@ class Book_Scraper:
         with open(full_file_name, 'wb') as file_image:
             file_image.write(response.content)
 
-        print("Downloading image: " + file_name + "")
+        print(f'Downloading image: {file_name}')
