@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 import os
 from pandas import DataFrame as df
 
+from models.category import Category
+
 # Define product page headers
 PRODUCT_PAGE_HEADERS = (
     "product_page_url",
@@ -30,83 +32,6 @@ class Controller:
         """Get the html content of a page"""
         response = requests.get(url)
         return BeautifulSoup(response.content, "html.parser")
-
-    def parse_product_page_infos(self, url: str):
-        """Parse product page informations"""
-        # Parse the html content
-        soup = self.get_soup(url)
-
-        # Get product page informations
-        product_page_url = url
-        universal_product_code = soup.find(string="UPC").next_element.text
-        title = soup.find("h1").text
-        price_including_tax = soup.find(string="Price (incl. tax)").next_element.text
-        price_excluding_tax = soup.find(string="Price (excl. tax)").next_element.text
-        number_available = soup.find(string="Availability").next_element.next_element.text
-        product_description = soup.find(id="product_description")
-
-        if product_description:
-            product_description = product_description.next_sibling.next_sibling.text
-        else:
-            product_description = "No description available"
-
-        category = soup.find("ul", {"class": "breadcrumb"}).find_all("li")[-2].text.strip()
-        review_rating = soup.find("p", {"class": "star-rating"})["class"][1]
-        image_url = (
-            soup.find("div", class_="carousel-inner")
-            .find_next("img")["src"]
-            .replace("../../", "http://books.toscrape.com/")
-        )
-
-        product_page_infos = [
-            product_page_url,
-            universal_product_code,
-            title,
-            price_including_tax,
-            price_excluding_tax,
-            number_available,
-            product_description,
-            category,
-            review_rating,
-            image_url,
-        ]
-
-        return product_page_infos
-
-    def parse_category_page(self, category_page_url: str):
-        """Parse category page informations"""
-        books_urls = []
-        product_page_infos = []
-
-        soup = self.get_soup(category_page_url)
-
-        category_name = soup.find("h1").text.strip()
-
-        books = soup.find_all("h3")
-        for book in books:
-            books_urls.append(book.find_next("a")["href"].replace("../../../", "http://books.toscrape.com/catalogue/"))
-
-        # Check if there is a next page
-        next_page = soup.find("li", {"class": "next"})
-
-        if next_page:
-            total_pages = soup.find("li", {"class": "current"}).text.strip().split(" ")[3]
-            for i in range(2, int(total_pages) + 1):
-                pagination = "page-" + str(i) + ".html"
-                soup = self.get_soup(category_page_url.replace("index.html", pagination))
-                books = soup.find_all("h3")
-                for book in books:
-                    books_urls.append(
-                        book.find_next("a")["href"].replace("../../../", "http://books.toscrape.com/catalogue/")
-                    )
-
-        # Parse product page informations
-        for book_url in books_urls:
-            product_page_infos.append(self.parse_product_page_infos(book_url))
-
-        self.view.show_message(f"Successful parsing of category: {category_name}")
-
-        return category_name, product_page_infos
 
     def parse_all_categories_pages(self, url: str):
         """Parse all categories pages"""
@@ -161,15 +86,15 @@ class Controller:
         categories_urls = self.parse_all_categories_pages(self.url)
 
         for category_url in categories_urls:
-            # Parse categories product page data
-            category_name, product_page_infos = self.parse_category_page(category_url)
+            category = Category(category_url)
+            self.view.show_message(f"Successful parsing of category: {category.category_name}")
 
             # Load category product page data
-            self.load_product_page_data(category_name, PRODUCT_PAGE_HEADERS, product_page_infos)
+            self.load_product_page_data(category.category_name, PRODUCT_PAGE_HEADERS, category.product_page_infos)
 
-        # Download images
-        for product_page_info in product_page_infos:
-            image_url = product_page_info[-1]
-            universal_product_code = product_page_info[1]
-            file_name = universal_product_code + ".jpg"
-            self.download_image(image_url, category_name, file_name)
+            # Download images
+            for product_page_info in category.product_page_infos:
+                image_url = product_page_info[-1]
+                universal_product_code = product_page_info[1]
+                file_name = universal_product_code + ".jpg"
+                self.download_image(image_url, category.category_name, file_name)
